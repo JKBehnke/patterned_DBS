@@ -172,14 +172,22 @@ def figure_layout_time_frequency():
     return fig, axes
 
 
-def plot_time_frequency(dbs_duration: str):
+def plot_time_frequency(dbs_duration: str, zoom_DBS_off: str):
     """
     Input:
         - dbs_duration: str, e.g. "1min", "5min", "30min"
+        - plot_zoom_DBS_off: str, e.g. "yes", "no"
 
 
     """
+    zoom_filename = ""
     ########################### Load data ###########################
+
+    dbs_turn_off_moment = {
+        "1min": [55, 100],
+        "5min": [295, 340],
+        "30min": [250, 305],
+    }
 
     cDBS_or_burst_DBS = ["cDBS", "burstDBS"]
 
@@ -216,6 +224,16 @@ def plot_time_frequency(dbs_duration: str):
                 fs=SAMPLING_FREQ, signal=post_DBS_data
             )
 
+            if zoom_DBS_off == "yes":
+                zoom_filename = "_zoom"
+
+                # get the moment when DBS is turned OFF
+                cut_1 = dbs_turn_off_moment[dbs_duration][0] * SAMPLING_FREQ
+                cut_2 = dbs_turn_off_moment[dbs_duration][1] * SAMPLING_FREQ
+
+                # cut post-DBS filtered and only plot the moment when DBS is turned OFF
+                post_DBS_filtered = post_DBS_filtered[cut_1 : cut_2 + 1]
+
             # plot TF
             noverlap = 0
 
@@ -244,7 +262,7 @@ def plot_time_frequency(dbs_duration: str):
             )
             io.save_fig_png_and_svg(
                 path=GROUP_FIGURES_PATH,
-                filename=f"time_frequency_plot_sub-075_{hem}_3MFU_pilot_{dbs_duration}",
+                filename=f"time_frequency_plot{zoom_filename}_sub-075_{hem}_3MFU_pilot_{dbs_duration}",
                 figure=fig,
             )
 
@@ -267,6 +285,16 @@ def plot_time_frequency(dbs_duration: str):
                 post_DBS_filtered = lfp_preprocessing.band_pass_filter_percept(
                     fs=SAMPLING_FREQ, signal=post_DBS_data
                 )
+
+                if zoom_DBS_off == "yes":
+                    zoom_filename = "_zoom"
+
+                    # get the moment when DBS is turned OFF
+                    cut_1 = dbs_turn_off_moment[dbs_duration][0] * SAMPLING_FREQ
+                    cut_2 = dbs_turn_off_moment[dbs_duration][1] * SAMPLING_FREQ
+
+                    # cut post-DBS filtered and only plot the moment when DBS is turned OFF
+                    post_DBS_filtered = post_DBS_filtered[cut_1 : cut_2 + 1]
 
                 # plot TF
                 noverlap = 0
@@ -296,9 +324,10 @@ def plot_time_frequency(dbs_duration: str):
             )
             io.save_fig_png_and_svg(
                 path=GROUP_FIGURES_PATH,
-                filename=f"time_frequency_plot_sub-075_{hem}_3MFU_pilot_{dbs_duration}",
+                filename=f"time_frequency_plot{zoom_filename}_sub-075_{hem}_3MFU_pilot_{dbs_duration}",
                 figure=fig,
             )
+    return post_DBS_filtered
 
 
 def fourier_transform(time_domain_data: np.array):
@@ -581,7 +610,21 @@ def calculate_beta_baseline(
             [
                 DBS_beta_baseline,
                 peak_average_Zxx_df,
+            ],
+            ignore_index=True,
+        )
+
+        DBS_beta_baseline = pd.concat(
+            [
+                DBS_beta_baseline,
                 peak_normalized_to_5_95_df,
+            ],
+            ignore_index=True,
+        )
+
+        DBS_beta_baseline = pd.concat(
+            [
+                DBS_beta_baseline,
                 peak_normalized_to_40_90_df,
             ],
             ignore_index=True,
@@ -709,6 +752,15 @@ def power_spectrum_baseline(
 ):
     """
     Plot the Power Spectrum of the baseline (pre or post DBS)
+
+    Input:
+        - DBS_duration: str, e.g. "1min", "5min", "30min"
+        - burstDBS_or_cDBS: str, e.g. "cDBS", "burstDBS"
+        - hemisphere: str, e.g. "Left", "Right"
+        - normalized: str, e.g. "normalized_to_5_95", "normalized_to_40_90", "not_normalized"
+        - freq_band: str, e.g. "beta", "low_beta", "high_beta"
+        - filtered: str, e.g. "band-pass_5_95", "unfiltered"
+        - pre_or_post: str, e.g. "pre", "post"
     """
 
     normalize_dict = {
@@ -749,7 +801,7 @@ def power_spectrum_baseline(
     ]
     peak_freq_range = beta_peak_baseline["freq_range_around_max_peak"].values[0]
 
-    # fig = plt.figure(figsize=(10, 5), layout="tight")
+    fig = plt.figure(figsize=(10, 5), layout="tight")
     plt.subplot(1, 1, 1)
     plt.title(
         f"Power Spectrum {filtered} sub-075 {hemisphere}: \n {pre_or_post} {burstDBS_or_cDBS}, {DBS_duration}, normalized: {normalized}",
@@ -762,13 +814,17 @@ def power_spectrum_baseline(
     # plt.ylim(1, 100)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
-    plt.axvline(x=peak_freq_range[0], color="black", linewidth=3)
-    plt.axvline(x=peak_freq_range[6], color="black", linewidth=3)
+    # plt.axvline(x=peak_freq_range[0], color="black", linewidth=3)
+    # plt.axvline(x=peak_freq_range[6], color="black", linewidth=3)
 
     # Plot the legend only for the first row "postop"
     # plt.legend(loc="upper right", edgecolor="black", fontsize=40)
 
-    plt.show()
+    io.save_fig_png_and_svg(
+        path=GROUP_FIGURES_PATH,
+        filename=f"power_spectrum_plot_baseline_sub-075_{hemisphere}_3MFU_pilot_{DBS_duration}_{burstDBS_or_cDBS}_{pre_or_post}_{filtered}_{normalized}",
+        figure=fig,
+    )
 
 
 def load_value_beta_baseline(
@@ -1070,4 +1126,17 @@ def calculate_rel_power_post_dbs(
             [half_sec_spectra_df, half_sec_spectra_single], ignore_index=True
         )
 
+    io.save_result_dataframe_as_pickle(
+        data=post_DBS_dataframe,
+        filename=f"post_DBS_dataframe_{DBS_duration}_{burstDBS_or_cDBS}_{hemisphere}_{normalized}_{freq_band}_{filtered}_{freq_average_or_peak}_pilot_sub-075",
+    )
+
+    io.save_result_dataframe_as_pickle(
+        data=half_sec_spectra_df,
+        filename=f"half_sec_spectra_df_{DBS_duration}_{burstDBS_or_cDBS}_{hemisphere}_{normalized}_{freq_band}_{filtered}_{freq_average_or_peak}_pilot_sub-075",
+    )
+
     return post_DBS_dataframe, half_sec_spectra_df
+
+    # def plot_post_dbs_rel_power():
+    """ """
