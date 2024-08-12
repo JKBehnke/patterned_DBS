@@ -1,0 +1,2 @@
+pyperceive @ git+https://github.com/jgvhabets/PyPerceive.git@dev_Jenny
+pyxdf-tools @ git+https://github.com/jamieforth/pyxdf-tools.git#egg=pyxdftools

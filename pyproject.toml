@@ -1,13 +1,22 @@
 [project]
 dependencies = [
+    "setuptools",
     "cycler",
     "matplotlib",
     "mne",
+    "mnelab",
     "numpy",
     "pandas",
     # "pyperceive@git+https://github.com/richardkoehler/PyPerceive.git@beta_profile",
     "pyperceive@git+https://github.com/jgvhabets/PyPerceive.git@dev_Jenny",
-    "scipy",
+    "seaborn",
+    "pingouin",
+    "fooof",
+    "pyxdf-tools@git+https://github.com/jamieforth/pyxdf-tools.git#egg=pyxdftools",
+    "ipykernel",
+    "ipython juypter",                                                              # necessary for jupyter notebook to recognize the kernel
+
+
 ]
 name = "burst_dbs"
 version = "0.1.0-alpha.1"
