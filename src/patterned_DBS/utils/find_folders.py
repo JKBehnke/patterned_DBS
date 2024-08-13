@@ -264,6 +264,52 @@ def get_onedrive_path_externalized_bids(folder: str = "onedrive", sub: str = Non
                 return sub_path
 
 
+def get_onedrive_path_burst_dbs(folder: str = "onedrive", sub: str = None):
+    """
+    Device and OS independent function to find
+    the synced-OneDrive folder where data is stored
+    Folder has to be in ['onedrive', 'data',
+        ]
+    """
+
+    folder_options = ["onedrive", "data", "sub_lsl_data"]
+
+    # Error checking, if folder input is in folder options
+    if folder.lower() not in folder_options:
+        raise ValueError(
+            f"given folder: {folder} is incorrect, " f"should be {folder_options}"
+        )
+
+    # from your cwd get the path and stop at 'Users'
+    path = os.getcwd()
+
+    while os.path.dirname(path)[-5:] != "Users":
+        path = os.path.dirname(path)  # path is now leading to Users/username
+
+    # get the onedrive folder containing "onedrive" and "charit" and add it to the path
+    onedrive_f = [
+        f
+        for f in os.listdir(path)
+        if np.logical_and("onedrive" in f.lower(), "charit" in f.lower())
+    ]
+
+    path = os.path.join(path, onedrive_f[0])  # path is now leading to Onedrive folder
+
+    # add the BIDS folder to the path and from there open the folders depending on input folder
+    datapath = os.path.join(path, "Burst_DBS_project - AG Bewegungsstörungen")
+    if folder == "onedrive":
+        return datapath
+
+    elif folder == "data":
+        return os.path.join(datapath, "data")
+
+    elif folder == "sub_lsl_data":
+        return os.path.join(datapath, "data", f"sub-{sub}", "LSL_data")
+
+    else:
+        print("Folder not found")
+
+
 def get_local_path(folder: str, sub: str = None):
     """
     find_project_folder is a function to find the folder "Longterm_beta_project" on your local computer

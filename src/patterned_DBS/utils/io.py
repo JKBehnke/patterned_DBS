@@ -1,10 +1,9 @@
 """ Load result files from results folder"""
 
-
 import os
 import pandas as pd
 import pickle
-import json
+import pyxdf
 
 from ..utils import find_folders as find_folders
 
@@ -123,3 +122,37 @@ def load_excel_files(filename: str):
     print("Excel file loaded: ", f_name, "\nloaded from: ", path)
 
     return data
+
+
+def load_xdf_files(
+    sub: str,
+    stimulation: str,
+    medication: str,
+    task: str,
+    run: str,
+):
+    """
+    xdf file with filename structure: sub-084_ses-burst_on_med-off_task-updrs_run-001_eeg.xdf
+    Input:
+        - sub: str e.g. "084
+        - stimulation: str: ["burst_on", "burst_off_0", "burst_off_30",
+        "continuous_on", "continuous_off_0", "continuous_off_30"]
+        - medication: str ["off", "on"]
+        - task: str ["updrs", "rest"]
+        - run: str ["1", "2"]
+
+    """
+
+    # find the path to the burst DBS onedrive folder
+    path = find_folders.get_onedrive_path_burst_dbs(folder="sub_lsl_data", sub=sub)
+
+    path = os.path.join(path, f"ses-{stimulation}_med-{medication}")
+    path = os.path.join(path, "eeg")
+    path = os.path.join(
+        path,
+        f"sub-{sub}_ses-{stimulation}_med-{medication}_task-Default_acq-{task}_run-00{run}_eeg.xdf",
+    )
+
+    data, header = pyxdf.load_xdf(path)
+
+    return data, header, path

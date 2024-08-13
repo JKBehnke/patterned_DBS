@@ -1,6 +1,5 @@
 """ Patterned DBS Pilot"""
 
-
 import os
 import pickle
 
@@ -10,8 +9,8 @@ import pandas as pd
 import mne
 import scipy
 from scipy import signal
-from scipy.signal import butter, filtfilt, freqz, hann, spectrogram
-from scipy.integrate import simps
+from scipy.signal import butter, filtfilt, freqz, spectrogram
+from scipy.integrate import simpson  # simps
 
 
 # internal Imports
@@ -342,7 +341,7 @@ def fourier_transform(time_domain_data: np.array):
     )  # 50% overlap e.g. 2min pre-DBS baseline -> 239 x 0.5 seconds = 120 seconds
 
     # Calculate the short-time Fourier transform (STFT) using Hann window
-    window = hann(window_length, sym=False)
+    window = scipy.signal.windows.hann(window_length, sym=False)
 
     frequencies, times, Zxx = scipy.signal.spectrogram(
         time_domain_data,

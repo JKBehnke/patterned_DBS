@@ -1,6 +1,5 @@
 """ Helper functions to Read and preprocess externalized LFPs"""
 
-
 import os
 import pickle
 
@@ -9,7 +8,7 @@ import numpy as np
 import pandas as pd
 import scipy
 from scipy import signal
-from scipy.signal import butter, filtfilt, freqz, hann, spectrogram
+from scipy.signal import butter, filtfilt, freqz, spectrogram
 
 from ..utils import find_folders as find_folders
 
