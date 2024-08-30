@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import pickle
 import pyxdf
+import mne
 
 from ..utils import find_folders as find_folders
 
@@ -12,6 +13,15 @@ from PerceiveImport.classes import main_class
 
 GROUP_RESULTS_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupResults")
 GROUP_FIGURES_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupFigures")
+
+FILENAME_DICT = {
+    "streaming": "-BrainSense",
+    "indefinite_streaming": "-IS",
+    "rest": "Rest",
+    "updrs": "UPDRS",
+    "on": "MedOn",
+    "off": "MedOff",
+}
 
 
 ########### save results ############
@@ -135,11 +145,10 @@ def load_xdf_files(
     xdf file with filename structure: sub-084_ses-burst_on_med-off_task-updrs_run-001_eeg.xdf
     Input:
         - sub: str e.g. "084
-        - stimulation: str: ["burst_on", "burst_off_0", "burst_off_30",
-        "continuous_on", "continuous_off_0", "continuous_off_30"]
+        - stimulation: str: ["StimOnB", "StimOffB", "StimOnA", "StimOffA"] (A=continuous, B=burst)
         - medication: str ["off", "on"]
         - task: str ["updrs", "rest"]
-        - run: str ["1", "2"]
+        - run: str ["1", "2", "3] (in Stim OFF there are 3 runs: 0, 30 and 60 min after Stim OFF)
 
     """
 
@@ -156,3 +165,50 @@ def load_xdf_files(
     data, header = pyxdf.load_xdf(path)
 
     return data, header, path
+
+
+def load_perceive_file(
+    sub: str, modality: str, task: str, medication: str, stimulation: str, run: str
+):
+    """
+    Input:
+    - sub: str, e.g. "084"
+    - modality: str, e.g. "streaming", "indefinite_streaming"
+    - task: str, e.g. "updrs", "rest"
+    - medication: str, e.g. "on", "off"
+    - stimulation: str, e.g. ["StimOnB", "StimOffB", "StimOnA", "StimOffA"] (A=continuous, B=burst)
+    - run: str, e.g. "1", "2", "3" (run-1 is the first run, in Stim OFF there are 3 runs: 0, 30 and 60 min after Stim OFF)
+
+    """
+
+    # get a list with files from the path
+    path = find_folders.get_onedrive_path_burst_dbs(folder="sub_perceive_data", sub=sub)
+
+    # check for error:
+    if modality == "indefinite_streaming":
+        task = "rest"
+
+        if "On" in stimulation:
+            raise ValueError("Stimulation On is not available for indefinite streaming")
+
+    # get the correct file
+    file_path = None
+    for filename in os.listdir(path):
+        if (
+            FILENAME_DICT[modality] in filename
+            and FILENAME_DICT[task] in filename
+            and FILENAME_DICT[medication] in filename
+            and stimulation in filename
+            and f"run-{run}" in filename
+        ):
+            file_path = os.path.join(path, filename)
+
+    if file_path is None:
+        raise FileNotFoundError(
+            f"File not found in {path}. \nAvailable files: \n{os.listdir(path)}"
+        )
+
+    # load the file
+    data = mne.io.read_raw_fieldtrip(file_path, info={}, data_name="data")
+
+    return {"data": data, "file_path": file_path}

@@ -3,6 +3,7 @@ dependencies = [
     "setuptools",
     "cycler",
     "matplotlib",
+    "PyQt5",      # for interactive matplotlib plots
     "mne",
     "mnelab",
     "numpy",

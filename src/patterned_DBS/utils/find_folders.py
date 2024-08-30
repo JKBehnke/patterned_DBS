@@ -268,11 +268,11 @@ def get_onedrive_path_burst_dbs(folder: str = "onedrive", sub: str = None):
     """
     Device and OS independent function to find
     the synced-OneDrive folder where data is stored
-    Folder has to be in ['onedrive', 'data',
+    Folder has to be in ['onedrive', 'data', 'sub_lsl_data', 'sub_perceive_data'
         ]
     """
 
-    folder_options = ["onedrive", "data", "sub_lsl_data"]
+    folder_options = ["onedrive", "data", "sub_lsl_data", "sub_perceive_data"]
 
     # Error checking, if folder input is in folder options
     if folder.lower() not in folder_options:
@@ -305,6 +305,9 @@ def get_onedrive_path_burst_dbs(folder: str = "onedrive", sub: str = None):
 
     elif folder == "sub_lsl_data":
         return os.path.join(datapath, "data", f"sub-{sub}", "LSL_data")
+
+    elif folder == "sub_perceive_data":
+        return os.path.join(datapath, "data", f"sub-{sub}", "Perceive_data")
 
     else:
         print("Folder not found")
