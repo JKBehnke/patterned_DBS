@@ -1,4 +1,4 @@
-""" Helper functions to Read and preprocess externalized LFPs"""
+""" Helper functions to Read and preprocess LFPs"""
 
 import os
 import pickle
@@ -17,8 +17,6 @@ GROUP_RESULTS_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupRe
 GROUP_FIGURES_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupFigures")
 
 HEMISPHERES = ["Right", "Left"]
-
-SUBJECTS = ["075"]
 
 
 # get index of each channel and get the corresponding LFP data

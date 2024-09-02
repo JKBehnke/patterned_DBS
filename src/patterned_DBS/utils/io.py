@@ -212,3 +212,44 @@ def load_perceive_file(
     data = mne.io.read_raw_fieldtrip(file_path, info={}, data_name="data")
 
     return {"data": data, "file_path": file_path}
+
+
+def load_metadata_excel(sub: str, sheet_name: str):
+    """
+    Load the metadata excel file for a specific subject
+    path: onedrive/data/sub-xxx/metadata_xxx.xlsx
+
+    Input
+    - sub: str, e.g. "084"
+    - sheet_name: str, e.g. "stimulation_parameters", "medication", "updrs"
+
+    """
+
+    # check if sheet name exists:
+    if sheet_name not in [
+        "patient_details",
+        "stimulation_parameters",
+        "medication",
+        "stim_on_mobility_activity",
+        "patient_remarks",
+        "side_effects",
+        "questionnaires",
+        "updrs",
+        "gait_tasks",
+        "timestamps",
+        "lsl_filenames",
+        "session_list",
+    ]:
+        raise ValueError("Sheet name not found in the excel file")
+
+    path = find_folders.get_onedrive_path_burst_dbs(folder="sub_data", sub=sub)
+
+    filename = f"metadata_{sub}.xlsx"
+
+    filepath = os.path.join(path, filename)
+
+    # load the file
+    data = pd.read_excel(filepath, keep_default_na=True, sheet_name=sheet_name)
+    print("Excel file loaded: ", filename, "\nloaded from: ", path)
+
+    return data

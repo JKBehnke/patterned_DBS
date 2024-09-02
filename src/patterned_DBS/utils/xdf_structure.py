@@ -9,6 +9,12 @@ from ..utils import io
 def get_xdf_structure(sub: str, stimulation: str, medication: str, task: str, run: str):
     """
     Load the xdf file, structure the data and return the structured data
+    Input:
+        - sub: str, e.g. "084"
+        - stimulation: str, e.g. "StimOnB", "StimOffB", "StimOnA", "StimOffA"
+        - medication: str, e.g. "on"
+        - task: str, e.g. "updrs"
+        - run: str, e.g. "1" (in Stim OFF there are 3 runs: 0, 30 and 60 min after Stim OFF)
 
     1. Load the xdf file
 
