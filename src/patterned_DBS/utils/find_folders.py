@@ -507,6 +507,10 @@ def get_patterned_dbs_project_path(folder: str, sub: str = None):
         "figures": os.path.join(project_path, "figures", f"sub-{sub}"),
         "data": os.path.join(project_path, "data"),
         "sub_data": os.path.join(project_path, "data", f"sub-{sub}"),
+        "sub_perceive_data": os.path.join(
+            project_path, "data", f"sub-{sub}", "Perceive_data"
+        ),
+        "sub_lsl_data": os.path.join(project_path, "data", f"sub-{sub}", "LSL_data"),
     }
 
     # add the folder to the path and from there open the folders depending on input folder

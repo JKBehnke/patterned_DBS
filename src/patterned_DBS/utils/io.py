@@ -5,6 +5,8 @@ import pandas as pd
 import pickle
 import pyxdf
 import mne
+import scipy
+import numpy as np
 
 from ..utils import find_folders as find_folders
 
@@ -15,8 +17,8 @@ GROUP_RESULTS_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupRe
 GROUP_FIGURES_PATH = find_folders.get_patterned_dbs_project_path(folder="GroupFigures")
 
 FILENAME_DICT = {
-    "streaming": "-BrainSense",
-    "indefinite_streaming": "-IS",
+    "streaming": "BrainSenseBip",
+    "indefinite_streaming": "ISRing",
     "rest": "Rest",
     "updrs": "UPDRS",
     "on": "MedOn",
@@ -173,7 +175,7 @@ def load_perceive_file(
     """
     Input:
     - sub: str, e.g. "084"
-    - modality: str, e.g. "streaming", "indefinite_streaming"
+    - modality: str, e.g. "streaming", "indefinite_streaming" ("BrainSenseBip", "ISRing" must be in filename)
     - task: str, e.g. "updrs", "rest"
     - medication: str, e.g. "on", "off"
     - stimulation: str, e.g. ["StimOnB", "StimOffB", "StimOnA", "StimOffA"] (A=continuous, B=burst)
@@ -182,7 +184,10 @@ def load_perceive_file(
     """
 
     # get a list with files from the path
-    path = find_folders.get_onedrive_path_burst_dbs(folder="sub_perceive_data", sub=sub)
+    # path = find_folders.get_onedrive_path_burst_dbs(folder="sub_perceive_data", sub=sub)
+    path = find_folders.get_patterned_dbs_project_path(
+        folder="sub_perceive_data", sub=sub
+    )
 
     # check for error:
     if modality == "indefinite_streaming":
@@ -193,6 +198,7 @@ def load_perceive_file(
 
     # get the correct file
     file_path = None
+
     for filename in os.listdir(path):
         if (
             FILENAME_DICT[modality] in filename
@@ -202,16 +208,54 @@ def load_perceive_file(
             and f"run-{run}" in filename
         ):
             file_path = os.path.join(path, filename)
+            break
 
     if file_path is None:
-        raise FileNotFoundError(
-            f"File not found in {path}. \nAvailable files: \n{os.listdir(path)}"
-        )
+        print(f"File not found in {path}. \nAvailable files: \n{os.listdir(path)}")
+        return None
 
     # load the file
-    data = mne.io.read_raw_fieldtrip(file_path, info={}, data_name="data")
+    mne_data = mne.io.read_raw_fieldtrip(file_path, info={}, data_name="data")
+    data = scipy.io.loadmat(file_path)
 
-    return {"data": data, "file_path": file_path}
+    # try if ecg_cleaned data is available
+    # Attempt to retrieve 'ecg_cleaned' data using indexing
+    # if hasattr(data["data"], "ecg_cleaned"):
+    #     ecg_cleaned_data = data["data"]["ecg_cleaned"][0][0]
+    # else:
+    #     ecg_cleaned_data = None
+
+    # try:
+    #     ecg_cleaned_data = data["data"]["ecg_cleaned"][0][
+    #         0
+    #     ]  # Adjust indexing as needed
+    # except (KeyError, IndexError, TypeError):
+    #     ecg_cleaned_data = None
+
+    try:
+        if (
+            isinstance(data["data"], np.ndarray)
+            and "ecg_cleaned" in data["data"].dtype.names
+        ):
+            ecg_cleaned_data = data["data"]["ecg_cleaned"][0][
+                0
+            ]  # Adjust indexing if necessary
+        else:
+            ecg_cleaned_data = None  # Set to None if "ecg_cleaned" is missing
+    except (KeyError, IndexError, TypeError, ValueError):
+        ecg_cleaned_data = None  # Handle other access errors gracefully
+
+    # get channel names
+    ch_names = [str(element[0][0]) for element in data["data"]["label"][0][0]]
+    ch_names = np.array(ch_names)
+
+    return {
+        "data": data,
+        "mne_data": mne_data,
+        "ecg_cleaned_data": ecg_cleaned_data,
+        "ch_names": ch_names,
+        "file_path": file_path,
+    }
 
 
 def load_metadata_excel(sub: str, sheet_name: str):
@@ -242,14 +286,30 @@ def load_metadata_excel(sub: str, sheet_name: str):
     ]:
         raise ValueError("Sheet name not found in the excel file")
 
-    path = find_folders.get_onedrive_path_burst_dbs(folder="sub_data", sub=sub)
+    # path = find_folders.get_onedrive_path_burst_dbs(folder="sub_data", sub=sub)
+    path = find_folders.get_patterned_dbs_project_path(folder="sub_data", sub=sub)
 
     filename = f"metadata_{sub}.xlsx"
 
     filepath = os.path.join(path, filename)
 
     # load the file
-    data = pd.read_excel(filepath, keep_default_na=True, sheet_name=sheet_name)
-    print("Excel file loaded: ", filename, "\nloaded from: ", path)
+    try:
+        # Load the file with explicit engine selection for xlsx files
+        data = pd.read_excel(
+            filepath, keep_default_na=True, sheet_name=sheet_name, engine="openpyxl"
+        )
+        print("Excel file loaded successfully:", filename, "\nloaded from:", path)
+    except FileNotFoundError:
+        print("Error: File not found at specified path.")
+    except ValueError as e:
+        print(f"Error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
 
-    return data
+    return data if "data" in locals() else None
+
+    # data = pd.read_excel(filepath, keep_default_na=True, sheet_name=sheet_name)
+    # print("Excel file loaded: ", filename, "\nloaded from: ", path)
+
+    # return data
