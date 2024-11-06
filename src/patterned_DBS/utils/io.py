@@ -218,20 +218,6 @@ def load_perceive_file(
     mne_data = mne.io.read_raw_fieldtrip(file_path, info={}, data_name="data")
     data = scipy.io.loadmat(file_path)
 
-    # try if ecg_cleaned data is available
-    # Attempt to retrieve 'ecg_cleaned' data using indexing
-    # if hasattr(data["data"], "ecg_cleaned"):
-    #     ecg_cleaned_data = data["data"]["ecg_cleaned"][0][0]
-    # else:
-    #     ecg_cleaned_data = None
-
-    # try:
-    #     ecg_cleaned_data = data["data"]["ecg_cleaned"][0][
-    #         0
-    #     ]  # Adjust indexing as needed
-    # except (KeyError, IndexError, TypeError):
-    #     ecg_cleaned_data = None
-
     try:
         if (
             isinstance(data["data"], np.ndarray)
