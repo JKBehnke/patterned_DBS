@@ -148,6 +148,10 @@ def lineplot_absolute_updrsiii(
     ax.set_xticks(range(len(x_labels)))
     ax.set_xticklabels(x_labels)  # Apply categorical labels to the x-axis
     ax.set_ylim(0, 80)  # Set y-axis limits
+    # total: (0, 80)
+    # tremor, bradykinesia: (0, 30)
+    # rigidity: (0, 15)
+    # gait (0, 6)
 
     # Add a legend
     ax.legend(
@@ -239,7 +243,7 @@ def lineplot_normalized_to_StimOnA_updrsiii(
 
     # Add labels and title
     ax.set_xlabel("Time Points")
-    ax.set_ylabel(f"{subscore_column}")
+    ax.set_ylabel(f"{subscore_column} [% of continuous DBS ON]")
     ax.set_title("UPDRS-III scores during and after stimulation")
 
     x_labels = ["StimON", "StimOFF-0", "StimOFF-30", "StimOFF-60"]
@@ -260,6 +264,103 @@ def lineplot_normalized_to_StimOnA_updrsiii(
     io.save_fig_png_and_svg(
         path=GROUP_FIGURES_PATH,
         filename=f"lineplot_updrsiii_normalized_to_StimOnA_{subscore}{hemisphere}",
+        figure=fig,
+    )
+    # Display the plot
+    plt.show()
+
+
+def barplot_absolute_updrsiii(
+    sub_list: list,
+    subscore: str,
+    hemisphere=None,
+):
+    """
+    Plot the absolute UPDRS-III scores for a list of subjects
+
+    Input:
+        - sub: list of subjects, e.g. ["089", "090"]
+        - subscore: "total", "tremor", "rigidity", "bradykinesia", "gait",
+        - hemisphere: "right", "left" (only if needed, otherwise None)
+    """
+
+    # plot
+    # Define colors for continuous and burst
+    continuous_color = "#4e79a7"  # Blue for continuous stimulation
+    burst_color = "#f28e2b"  # Orange for burst stimulation
+    bar_width = 0.20
+    x_labels = ["StimON", "StimOFF-0", "StimOFF-30", "StimOFF-60"]
+
+    # Plotting each subject's histograms
+    fig, axes = plt.subplots(
+        len(sub_list), 1, figsize=(10, 6 * len(sub_list)), sharex=True
+    )
+
+    # If only one subject, ensure axes is a list
+    if len(sub_list) == 1:
+        axes = [axes]
+
+    for idx, sub in enumerate(sub_list):
+
+        ax = axes[idx]  # Current subplot for the subject
+
+        # load data
+        subscore_column, stim_sheet_burst = load_updrsiii_scores(
+            sub=sub, stimulation="burst", subscore=subscore, hemisphere=hemisphere
+        )
+
+        subscore_column, stim_sheet_continuous = load_updrsiii_scores(
+            sub=sub, stimulation="continuous", subscore=subscore, hemisphere=hemisphere
+        )
+
+        y_burst = stim_sheet_burst[subscore_column].values
+        y_continuous = stim_sheet_continuous[subscore_column].values
+
+        x_burst = np.arange(
+            len(stim_sheet_burst["Stimulation"].values)
+        )  # Create numerical x-axis values for the categorical labels
+        x_continuous = np.arange(
+            len(stim_sheet_continuous["Stimulation"].values)
+        )  # Create numerical x-axis values for the categorical labels
+
+        # Plot continuous bars
+        ax.bar(
+            x_burst - bar_width / 2,
+            y_burst,
+            bar_width,
+            label="Burst DBS",
+            color=burst_color,
+        )
+
+        # Plot burst bars
+        ax.bar(
+            x_continuous + bar_width / 2,
+            y_continuous,
+            bar_width,
+            label="Continous DBS",
+            color=continuous_color,
+        )
+
+        # Set labels and title for each subject
+        ax.set_ylabel(f"{subscore} Score")
+        ax.set_title(f"sub-{sub} - Continuous vs. Burst Stimulation")
+        ax.set_xticks(range(len(x_labels)))
+        ax.set_xticklabels(x_labels)
+
+        # Show legend for the first subject only to avoid repetition
+        if idx == 0:
+            ax.legend(loc="upper right")
+
+    # Set common x-axis label
+    fig.text(0.5, 0.04, "Time Points", ha="center")
+    fig.suptitle(
+        "Comparison of UPDRS-III Scores: Continuous vs. Burst Stimulation per Subject"
+    )
+
+    # Save the figure
+    io.save_fig_png_and_svg(
+        path=GROUP_FIGURES_PATH,
+        filename=f"barplot_updrsiii_{subscore}",
         figure=fig,
     )
     # Display the plot
