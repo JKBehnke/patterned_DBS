@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import scipy
+import seaborn as sns
 
 from ..utils import find_folders as find_folders
 from ..utils import io as io
@@ -365,3 +366,168 @@ def barplot_absolute_updrsiii(
     )
     # Display the plot
     plt.show()
+
+
+############## GROUP ANALYSIS ############
+
+
+def group_updrs_scores(sub_list: list, stimulation: str):
+    """
+    Load the UPDRS scores for a list of subjects and stimulation type
+    """
+
+    # Concatenate the dataframes
+    for sub in sub_list:
+        updrs_scores = load_updrsiii_scores(
+            sub=sub, stimulation=stimulation, subscore="total"
+        )
+        if sub == sub_list[0]:
+            all_updrs_scores = updrs_scores[1]
+        else:
+            all_updrs_scores = pd.concat([all_updrs_scores, updrs_scores[1]])
+
+    return all_updrs_scores
+
+
+def extract_data_for_bar_and_line_plot(subscore: str):
+    """
+
+    Extract the data for the bar and line plots for the group analysis
+
+    Input:
+        - subscore: "total", "tremor", "rigidity", "bradykinesia", "
+
+    Extract the scores for all subjects for
+        - continuous DBS ON
+        - burst DBS ON
+        - StimOFF after cDBS (last StimOFF score, run 1, 2, or 3)
+
+    Output:
+        - structured_data: pd.DataFrame with columns: subject, stimulation, score
+        - StimOFF_scores: pd.DataFrame with columns: subject, StimOFFA_run
+    """
+    sub_list = ["084", "080", "075", "086", "087", "088", "089"]
+
+    structured_data = {
+        "subject": ["sub-1", "sub-2", "sub-3", "sub-4", "sub-5", "sub-6", "sub-7"] * 3,
+        "stimulation": ["continuous"] * 7 + ["burst"] * 7 + ["StimOFF"] * 7,
+        "score": [],
+    }
+
+    StimOFF_scores = {
+        "subject": sub_list,
+        "StimOFFA_run": [],
+    }
+
+    # first extract continuous score data per subject
+    for sub in sub_list:
+        subscore_column, stim_sheet = load_updrsiii_scores(
+            sub=sub, stimulation="continuous", subscore=subscore
+        )
+
+        stim_sheet = stim_sheet.loc[stim_sheet["Stimulation"] == "StimOnA"]
+
+        structured_data["score"].append(stim_sheet[subscore_column].values[0])
+
+    # then extract burst score data per subject
+    for sub in sub_list:
+        subscore_column, stim_sheet = load_updrsiii_scores(
+            sub=sub, stimulation="burst", subscore=subscore
+        )
+
+        stim_sheet = stim_sheet.loc[stim_sheet["Stimulation"] == "StimOnB"]
+
+        structured_data["score"].append(stim_sheet[subscore_column].values[0])
+
+    # then extract StimOFF score data per subject: last Stim OFF score per cDSB OFF
+    for sub in sub_list:
+        subscore_column, stim_sheet = load_updrsiii_scores(
+            sub=sub, stimulation="continuous", subscore=subscore
+        )
+
+        # check if StimOFFA_run-3 exists
+        if "StimOffA_run-3" in stim_sheet["Stimulation"].values:
+            stim_sheet = stim_sheet.loc[stim_sheet["Stimulation"] == "StimOffA_run-3"]
+            StimOFF_scores["StimOFFA_run"].append("run-3")
+
+        elif "StimOffA_run-2" in stim_sheet["Stimulation"].values:
+            stim_sheet = stim_sheet.loc[stim_sheet["Stimulation"] == "StimOffA_run-2"]
+            StimOFF_scores["StimOFFA_run"].append("run-2")
+
+        elif "StimOffA_run-1" in stim_sheet["Stimulation"].values:
+            stim_sheet = stim_sheet.loc[stim_sheet["Stimulation"] == "StimOffA_run-1"]
+            StimOFF_scores["StimOFFA_run"].append("run-1")
+
+        else:
+            print(
+                "StimOffA_run-3, StimOffA_run-2, StimOffA_run-1 not found in the data"
+            )
+            StimOFF_scores["StimOFFA_run"].extend("not found")
+
+        structured_data["score"].append(stim_sheet[subscore_column].values[0])
+
+    return pd.DataFrame(structured_data), pd.DataFrame(StimOFF_scores)
+
+
+def plot_bar_line_group_plot(
+    subscore: str,
+):
+    """
+    Plot the bar and line plot for the group UPDRS analysis
+
+    """
+    # has to be this order, because I use sub-1, sub-2, etc. in the plot
+    sub_list = ["084", "080", "075", "086", "087", "088", "089"]
+
+    # load the structured data
+    structured_data, StimOFF_scores = extract_data_for_bar_and_line_plot(
+        subscore=subscore
+    )
+
+    colors = plt.cm.Set2(
+        np.linspace(0, 1, len(sub_list))
+    )  # Use a colormap for distinct colors
+
+    # Create the barplot
+    # plt.figure(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.barplot(
+        data=structured_data,
+        x="stimulation",
+        y="score",
+        ci=None,
+        color="lightgray",
+        alpha=0.7,
+        ax=ax,
+    )
+
+    # Add individual data points with lines connecting the same subjects
+    for idx, sub in enumerate(structured_data["subject"].unique()):
+        subj_data = structured_data[structured_data["subject"] == sub]
+        ax.plot(
+            subj_data["stimulation"],
+            subj_data["score"],
+            marker="o",
+            label=sub,
+            alpha=0.7,
+            color=colors[idx],
+        )
+
+    # Add some visual touches
+    ax.set_title("UPDRS-III scores", fontsize=14)
+    ax.set_xlabel("Stimulation", fontsize=12)
+    ax.set_ylabel(subscore, fontsize=12)
+    ax.grid(axis="y", linestyle="--", alpha=0.7)
+    ax.legend(title="Subjects", bbox_to_anchor=(1.05, 1), loc="upper left")
+
+    fig.tight_layout()
+
+    # save figure
+    io.save_fig_png_and_svg(
+        path=GROUP_FIGURES_PATH,
+        filename=f"line_and_barplot_updrsiii_group_{subscore}",
+        figure=fig,
+    )
+
+
+####### STATISTICAL ANALYSIS ########
