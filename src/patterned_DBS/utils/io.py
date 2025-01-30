@@ -308,12 +308,12 @@ def load_gait_excel(sub: str, sheet_name: str):
 
     Input
     - sub: str, e.g. "084"
-    - sheet_name: str, e.g. "walk_10", "ziegler_score", "ziegler_times"
+    - sheet_name: str, e.g. "walk_10m", "ziegler_score", "ziegler_times"
 
     """
 
     # check if sheet name exists:
-    if sheet_name not in ["walk_10", "ziegler_score", "ziegler_times"]:
+    if sheet_name not in ["walk_10m", "ziegler_score", "ziegler_times"]:
         raise ValueError("Sheet name not found in the excel file")
 
     # path = find_folders.get_onedrive_path_burst_dbs(folder="sub_data", sub=sub)
