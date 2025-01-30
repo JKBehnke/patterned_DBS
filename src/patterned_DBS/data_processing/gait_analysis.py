@@ -58,6 +58,34 @@ def load_gait_task_results(
     return subscore_data, stim_sheet, score_sheet
 
 
+def load_gait_only_scores(
+    sub: str,
+    stimulation: str,
+    sheet: str,
+):
+    """
+    Input:
+        - sub: "084" only works for case subject
+        - stimulation: "burst" or "continuous"
+        - task: "walk_10m", "ziegler_score", "ziegler_times"
+
+    """
+
+    score_sheet = io.load_gait_excel(sub=sub, sheet_name=sheet)
+
+    # only keep stimulation burst or continuous
+    stim_sheet = score_sheet[
+        score_sheet["stimulation"].str.contains(
+            f"StimOn{STIMULATION_DICT[stimulation]}|StimOff{STIMULATION_DICT[stimulation]}",
+            na=False,
+        )
+    ]
+
+    # get the desired scores for each sessions
+
+    return stim_sheet, score_sheet
+
+
 def group_gait_task_results(sub_list: list, stimulation: str, task: str):
     """
     Load the gait tasks for a list of subjects and stimulation type
@@ -265,12 +293,17 @@ def plot_bar_line_group_plot_with_statistics(task: str, subscore_column: str):
     """
 
     # Subject list in order
-    sub_list = ["084", "080", "075", "086", "087", "088", "089"]
+    # excluded sub-084 because of FoG side effects
+    sub_list = ["080", "075", "086", "087", "088", "089"]
+    sub_ID_list = ["sub-2", "sub-3", "sub-4", "sub-5", "sub-6"]
 
     # Load the structured data
     structured_data, StimOFF_scores = extract_data_for_bar_and_line_plot(
         task=task, subscore_column=subscore_column
     )
+
+    # only keep data from the sub_list
+    structured_data = structured_data.loc[structured_data["subject"].isin(sub_ID_list)]
 
     # Statistical analysis
     pivot_data = structured_data.pivot(

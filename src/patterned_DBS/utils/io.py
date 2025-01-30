@@ -299,3 +299,42 @@ def load_metadata_excel(sub: str, sheet_name: str):
     # print("Excel file loaded: ", filename, "\nloaded from: ", path)
 
     # return data
+
+
+def load_gait_excel(sub: str, sheet_name: str):
+    """
+    Load the metadata excel file for a specific subject
+    path: onedrive/data/sub-xxx/gait_xxx.xlsx
+
+    Input
+    - sub: str, e.g. "084"
+    - sheet_name: str, e.g. "walk_10", "ziegler_score", "ziegler_times"
+
+    """
+
+    # check if sheet name exists:
+    if sheet_name not in ["walk_10", "ziegler_score", "ziegler_times"]:
+        raise ValueError("Sheet name not found in the excel file")
+
+    # path = find_folders.get_onedrive_path_burst_dbs(folder="sub_data", sub=sub)
+    path = find_folders.get_patterned_dbs_project_path(folder="sub_data", sub=sub)
+
+    filename = f"gait_{sub}.xlsx"
+
+    filepath = os.path.join(path, filename)
+
+    # load the file
+    try:
+        # Load the file with explicit engine selection for xlsx files
+        data = pd.read_excel(
+            filepath, keep_default_na=True, sheet_name=sheet_name, engine="openpyxl"
+        )
+        print("Excel file loaded successfully:", filename, "\nloaded from:", path)
+    except FileNotFoundError:
+        print("Error: File not found at specified path.")
+    except ValueError as e:
+        print(f"Error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+
+    return data if "data" in locals() else None
