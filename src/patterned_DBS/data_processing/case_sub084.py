@@ -55,6 +55,17 @@ def load_gait_data(
     return stim_sheet, score_sheet
 
 
+def format_time(seconds):
+    """Convert seconds to MM:SS format."""
+    total_seconds = round(seconds)  # Round to nearest whole number
+    mm = total_seconds // 60  # Get minutes
+    ss = total_seconds % 60  # Get seconds
+    return f"{mm}:{ss:02d}"  # Ensure two-digit seconds format
+    # mm = int(seconds // 60)
+    # ss = int(seconds % 60)
+    # return f"{mm}:{ss:02d}"
+
+
 def plot_ziegler_result(result: str):
     """
 
@@ -71,6 +82,8 @@ def plot_ziegler_result(result: str):
 
     # Filter the DataFrame to keep only rows where interval == "total_time"
     df_filtered = loaded_data[loaded_data["interval"] == "total_time"]
+
+    # text_data = df_filtered["time"]
 
     # Define the conditions for the three x-axis categories
     conditions = [
@@ -95,7 +108,7 @@ def plot_ziegler_result(result: str):
 
     # colors = plt.cm.Set2(np.linspace(0, 1, len(conditions)))
 
-    sns.barplot(
+    barplot = sns.barplot(
         data=df_filtered,
         x="x_category",
         y="time",
@@ -105,6 +118,42 @@ def plot_ziegler_result(result: str):
         ax=ax,
         order=x_labels,  # Ensure correct order of x-axis
     )
+
+    # Convert time back to MM:SS for annotation
+    df_filtered["time_display"] = df_filtered["time"].apply(format_time)
+
+    # # Add text annotations on top of each bar
+    # for bar, (x_category, task_level, time_display) in zip(
+    #     barplot.patches,
+    #     df_filtered[["x_category", "task_level", "time_display"]].values,
+    # ):
+    #     height = bar.get_height()  # Get bar height
+    #     ax.text(
+    #         bar.get_x() + bar.get_width() / 2,  # X position (centered)
+    #         height + 1,  # Slightly above the bar
+    #         time_display,  # MM:SS format
+    #         ha="center",  # Center-align text
+    #         va="bottom",
+    #         fontsize=12,
+    #         fontweight="bold",
+    #         color="black",
+    #     )
+
+    # Add text annotations on top of each bar
+    for bar in ax.patches:
+        height = bar.get_height()  # Get the height of each bar (which is in seconds)
+        time_display = format_time(height)  # Convert seconds to MM:SS
+
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,  # Centered X position
+            height + 2,  # Y position slightly above the bar
+            time_display,  # MM:SS format
+            ha="center",  # Center-align text
+            va="bottom",
+            fontsize=12,
+            fontweight="bold",
+            color="black",
+        )
 
     # Styling
     ax.set_xlabel("Stimulation Condition")
@@ -128,72 +177,90 @@ def plot_ziegler_result(result: str):
         figure=fig,
     )
 
+    return ax, df_filtered
 
-def plot_10m_walk_result():
-    """ """
 
-    sub_path = find_folders.get_patterned_dbs_project_path(folder="figures", sub="084")
+# def plot_10m_walk_result():
+#     """ """
 
-    loaded_data = load_gait_data(sub="084", stimulation="continuous", sheet=f"walk_10m")
-    loaded_data = loaded_data[1]
+#     sub_path = find_folders.get_patterned_dbs_project_path(folder="figures", sub="084")
 
-    # Define the conditions for the three x-axis categories
-    conditions = [
-        (loaded_data["stimulation"] == "StimOnB") & (loaded_data["run"] == 1),
-        (loaded_data["stimulation"] == "StimOnA") & (loaded_data["run"] == 1),
-        (loaded_data["stimulation"] == "StimOffA") & (loaded_data["run"] == 1),
-        (loaded_data["stimulation"] == "StimOffA") & (loaded_data["run"] == 2),
-    ]
+#     loaded_data = load_gait_data(sub="084", stimulation="continuous", sheet=f"walk_10m")
+#     loaded_data = loaded_data[1]
 
-    # Create labels for the x-axis
-    x_labels = [
-        "burst DBS Stim ON",
-        "cDBS Stim On",
-        "cDBS Stim Off - 30 min",
-        "cDBS Stim Off - 100 min",
-    ]
+#     text_data = loaded_data["time"]
 
-    # Assign a new categorical variable based on conditions
-    loaded_data["x_category"] = None
-    for i, condition in enumerate(conditions):
-        loaded_data.loc[condition, "x_category"] = x_labels[i]
+#     # Define the conditions for the three x-axis categories
+#     conditions = [
+#         (loaded_data["stimulation"] == "StimOnB") & (loaded_data["run"] == 1),
+#         (loaded_data["stimulation"] == "StimOnA") & (loaded_data["run"] == 1),
+#         (loaded_data["stimulation"] == "StimOffA") & (loaded_data["run"] == 1),
+#         (loaded_data["stimulation"] == "StimOffA") & (loaded_data["run"] == 2),
+#     ]
 
-    # Drop any NaN values (if any rows don't match the conditions)
-    loaded_data = loaded_data.dropna(subset=["x_category"])
+#     # Create labels for the x-axis
+#     x_labels = [
+#         "burst DBS Stim ON",
+#         "cDBS Stim On",
+#         "cDBS Stim Off - 30 min",
+#         "cDBS Stim Off - 100 min",
+#     ]
 
-    # Create figure and axis
-    fig, ax = plt.subplots(figsize=(8, 6))
+#     # Assign a new categorical variable based on conditions
+#     loaded_data["x_category"] = None
+#     for i, condition in enumerate(conditions):
+#         loaded_data.loc[condition, "x_category"] = x_labels[i]
 
-    # colors = plt.cm.Set2(np.linspace(0, 1, len(conditions)))
+#     # Drop any NaN values (if any rows don't match the conditions)
+#     loaded_data = loaded_data.dropna(subset=["x_category"])
 
-    sns.barplot(
-        data=loaded_data,
-        x="x_category",
-        y="time",
-        ax=ax,
-        order=x_labels,  # Ensure correct order of x-axis
-        palette="muted",
-    )
+#     # Create figure and axis
+#     fig, ax = plt.subplots(figsize=(8, 6))
 
-    # Styling
-    ax.set_xlabel("Stimulation Condition")
-    ax.set_ylabel("Time (seconds)")
-    ax.set_title("10 m Walk Across Stimulation Conditions")
+#     # colors = plt.cm.Set2(np.linspace(0, 1, len(conditions)))
 
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=20)
-    ax.tick_params(axis="x", rotation=30)
-    ax.grid(axis="y", linestyle="--", alpha=0.6)
+#     barplot = sns.barplot(
+#         data=loaded_data,
+#         x="x_category",
+#         y="time",
+#         ax=ax,
+#         order=x_labels,  # Ensure correct order of x-axis
+#         palette="muted",
+#     )
 
-    # Show the plot
+#     # Add text annotations on top of each bar
+#     for i, bar in enumerate(barplot.patches):
+#         height = bar.get_height()  # Get bar height
+#         ax.text(
+#             bar.get_x() + bar.get_width() / 2,  # X position (centered)
+#             height + 0.05,  # Y position (a little above the bar)
+#             text_data.iloc[i],  # MM:SS format
+#             ha="center",  # Center-align text
+#             va="bottom",
+#             fontsize=12,
+#             fontweight="bold",
+#             color="black",
+#         )
 
-    fig.tight_layout()
+#     # Styling
+#     ax.set_xlabel("Stimulation Condition")
+#     ax.set_ylabel("Time (seconds)")
+#     ax.set_title("10 m Walk Across Stimulation Conditions")
 
-    # Save figure
-    io.save_fig_png_and_svg(
-        path=sub_path,
-        filename=f"barplot_10m_walk_sub_084",
-        figure=fig,
-    )
+#     # ax.set_xticklabels(ax.get_xticklabels(), rotation=20)
+#     ax.tick_params(axis="x", rotation=30)
+#     ax.grid(axis="y", linestyle="--", alpha=0.6)
+
+#     # Show the plot
+
+#     fig.tight_layout()
+
+#     # Save figure
+#     io.save_fig_png_and_svg(
+#         path=sub_path,
+#         filename=f"barplot_10m_walk_sub_084",
+#         figure=fig,
+#     )
 
 
 # Convert "MM:SS:milliseconds" to minutes
